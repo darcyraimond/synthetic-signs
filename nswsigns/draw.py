@@ -7,10 +7,9 @@ def drawRectangle(img, c, tl, br):
     # Add alpha if not provided
     if len(c) == 3: c = [c[0], c[1], c[2], 255]
 
-    for i in range(tl[0], br[0] + 1):
-        for j in range(tl[1], br[1] + 1):
-            for k in range(4):
-                img[i][j][k] = c[k]
+    for k in range(4):
+        img[tl[0]:br[0], tl[1]:br[1], k] *= 0
+        img[tl[0]:br[0], tl[1]:br[1], k] += c[k]
 
 
 def drawCircle(img, c, centre, radius):
