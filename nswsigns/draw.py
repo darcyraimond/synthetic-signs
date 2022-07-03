@@ -91,8 +91,8 @@ def textBBoxBuffers(text, size, font=None, dims=None):
     buffer = 4
     t = t - buffer
     l = l - buffer
-    b = -b + buffer
-    r = -r + buffer
+    b = -b + buffer - 1
+    r = -r + buffer - 1
 
     return t, l, b, r
 
@@ -165,7 +165,7 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
     endMWidth = textDims(endM, int(round(height * mpc)))[1]
 
     # Extra buffer
-    buffer = 3
+    buffer = 2
 
     totalWidth = startIntWidth + startMWidth + endIntWidth + endMWidth + dashWidth + 4*hgap + 2*buffer
     radius = totalWidth // 2
@@ -191,10 +191,15 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
 
     # Draw text in correct positions
     drawText(sign, startTime[0], startIntPos, size=height, c=c)
+    ib = sign.textBounds[-1]
     drawText(sign, startM, startMPos, size=int(round(height * mpc)), c=c)
     drawRectangle(sign.image, c, dashTL, dashBR)
     drawText(sign, endTime[0], endIntPos, size=height, c=c)
     drawText(sign, endM, endMPos, size=int(round(height * mpc)), c=c)
+
+    # Add bounding box for dash
+    bbox = [[(ib[0][0][0], dashTL[1] - 3), (ib[0][2][0], dashTL[1] - 3), (ib[0][2][0], dashBR[1] + 2), (ib[0][0][0], dashBR[1] + 2)], "-"]
+    sign.textBounds.append(bbox)
 
     # Add minutes if present
     if len(startTime) == 2:
@@ -208,7 +213,7 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
     # Add day text
     upTo = tc[0] + height + vgap
     dayHeight = int(round(dayPc * height))
-    dayGap = int(round(dayPc * hgap))
+    dayGap = int(round(dayPc * hgap * 2))
     dayDashWidth = int(round(dayPc * dashWidth))
     dayDashHeight = int(round(dayPc * dashHeight))
     for dayString in days:
@@ -228,7 +233,7 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
             endDayPos = (upTo, centre + dayRadius - endDayWidth // 2)
             dayDashTL = (
                 int(round(upTo + dayHeight*0.6 - dayDashHeight / 2)),
-                int(round(centre - dayRadius + startDayWidth + dayGap))
+                int(round(centre - dayRadius + startDayWidth + dayGap + 1))
             )
             dayDashBR = (
                 dayDashTL[0] + dayDashHeight,
@@ -237,8 +242,14 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
 
             # Draw stuff
             drawText(sign, dayString[0], startDayPos, dayHeight, c)
+            ib = sign.textBounds[-1]
             drawRectangle(sign.image, c, dayDashTL, dayDashBR)
             drawText(sign, dayString[1], endDayPos, dayHeight, c)
+
+            # Give rectangle a bounding box
+            bbox = [[(ib[0][0][0], dayDashTL[1] - 2), (ib[0][2][0], dayDashTL[1] - 2), (ib[0][2][0], dayDashBR[1] + 1), (ib[0][0][0], dayDashBR[1] + 1)], "-"]
+            sign.textBounds.append(bbox)
+
 
         upTo += dayHeight + vgap
 
