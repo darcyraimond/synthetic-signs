@@ -3,6 +3,7 @@ import draw
 from FontSelector import FontSelector
 from NoiseGenerator import NoiseGenerator
 import random
+from sign import Sign
 
 
 class NoStoppingGenerator:
@@ -14,7 +15,7 @@ class NoStoppingGenerator:
         self.outerPad = 10
         self.outerRedStrip = 13
         self.whiteStrip = 10
-        self.red = [45, 35, 185, 255]
+        self.red = [45, 35, 165, 255]
         self.white = [215, 215, 215, 255]
         self.cornerRadius = 40
         self.titleStart = 80
@@ -25,16 +26,23 @@ class NoStoppingGenerator:
         self.arrowLength = 320
         self.numDilations = 1
         self.dilationP = 0.25
-        self.wideNoise = 6
-        self.colourNoise = 4
-        self.narrowNoise = 5
+        self.wideNoise = 30
+        self.colourNoise = 5
+        self.narrowNoise = 20
+        self.wideSize = 120
+        self.narrowSize = 35
+        self.timeVGapPc = 0.1
+        self.timeHeight = 110
+        self.timeHGapPc = 0.13
+        self.timeDashWidthPc = 0.2
+        self.timeDashHeightPc = 0.06
 
         # Define maximum deviations
         self.outerRedStripDev = 5
         self.whiteStripDev = 3
-        self.rrDev = 40
-        self.rgDev = 15
-        self.rbDev = 15
+        self.rrDev = 60
+        self.rgDev = 25
+        self.rbDev = 25
         self.wCommonDev = 25
         self.wEachDev = 15
         self.radDev = 10
@@ -46,14 +54,30 @@ class NoStoppingGenerator:
         self.arrowLengthDev = 50
         self.numDilationsDev = 1
         self.dilationPDev = 0.15
-        self.wideNoiseDev = 5
-        self.colourNoiseDev = 3
-        self.narrowNoiseDev = 4
+        self.wideNoiseDev = 29
+        self.colourNoiseDev = 4
+        self.narrowNoiseDev = 19
+        self.wideSizeDev = 80
+        self.narrowSizeDev = 25
+        self.timeVGapPcDev = 0.15
+        self.timeHeightDev = 20
+        self.timeHGapPcDev = 0.08
+        self.timeDashWidthPcDev = 0.05
+        self.timeDashHeightPcDev = 0.015
+        
 
         self.fontSelector = FontSelector()
         self.noiseGenerator = NoiseGenerator()
 
-    def drawNoStoppingSignVertical(self):
+    def drawRandom(self):
+
+        # Only have vertical no stopping sign
+        # Choose arrow directions
+        arrows = random.choice([(True, True), (True, False), (False, True)])
+        return self.drawNoStoppingSignVertical(arrows[0], arrows[1])
+
+
+    def drawNoStoppingSignVertical(self, leftArrow, rightArrow):
 
         # Setup basic parameters
         dimensions = self.dimensions.copy()
@@ -74,6 +98,13 @@ class NoStoppingGenerator:
         wideNoise = self.wideNoise
         colourNoise = self.colourNoise
         narrowNoise = self.narrowNoise
+        wideSize = self.wideSize
+        narrowSize = self.narrowSize
+        timeVGapPc = self.timeVGapPc
+        timeHeight = self.timeHeight
+        timeHGapPc = self.timeHGapPc
+        timeDashWidthPc = self.timeDashWidthPc
+        timeDashHeightPc = self.timeDashHeightPc
 
         # Add noise to parameters
         outerRedStrip += random.randrange(-self.outerRedStripDev, self.outerRedStripDev + 1)
@@ -97,29 +128,41 @@ class NoStoppingGenerator:
         wideNoise += random.randrange(-self.wideNoiseDev, self.wideNoiseDev + 1)
         colourNoise += random.randrange(-self.colourNoiseDev, self.colourNoiseDev + 1)
         narrowNoise += random.randrange(-self.narrowNoiseDev, self.narrowNoiseDev + 1)
+        wideSize += random.randrange(-self.wideSizeDev, self.wideSizeDev + 1)
+        narrowSize += random.randrange(-self.narrowSizeDev, self.narrowSizeDev + 1)
+        timeVGapPc += random.uniform(-self.timeVGapPcDev, self.timeVGapPcDev)
+        timeHeight += random.randrange(-self.timeHeightDev, self.timeHeightDev + 1)
+        timeHGapPc += random.uniform(-self.timeHGapPcDev, self.timeHGapPcDev)
+        timeDashWidthPc += random.uniform(-self.timeDashWidthPcDev, self.timeDashWidthPcDev)
+        timeDashHeightPc += random.uniform(-self.timeDashHeightPcDev, self.timeDashHeightPcDev)
 
         # Create image
-        sign = np.zeros((*dimensions, 4), dtype = np.uint8)
+        sign = Sign()
+
+        sign.image = np.zeros((*dimensions, 4), dtype = np.uint8)
         draw.drawRoundedRectangle(
             sign, 
             tuple(red), 
             (outerPad, outerPad), 
             (dimensions[0] - outerPad, dimensions[1] - outerPad),
-            cornerRadius
+            cornerRadius,
+            True
         )
         draw.drawRoundedRectangle(
             sign,
             tuple(white), 
             (outerPad + outerRedStrip, outerPad + outerRedStrip), 
             (dimensions[0] - outerPad - outerRedStrip, dimensions[1] - outerPad - outerRedStrip), 
-            cornerRadius - outerRedStrip
+            cornerRadius - outerRedStrip,
+            False
         )
         draw.drawRoundedRectangle(
             sign, 
             tuple(red), 
             (outerPad + outerRedStrip + whiteStrip, outerPad + outerRedStrip + whiteStrip), 
             (dimensions[0] - outerPad - outerRedStrip - whiteStrip, dimensions[1] - outerPad - outerRedStrip - whiteStrip), 
-            cornerRadius - outerRedStrip - whiteStrip
+            cornerRadius - outerRedStrip - whiteStrip,
+            False
         )
         draw.drawTexts(
             sign, 
@@ -132,11 +175,23 @@ class NoStoppingGenerator:
         draw.drawArrow(
             sign, 
             (arrowStart, dimensions[1] // 2), 
-            left=True, 
-            right=True, 
+            left=leftArrow, 
+            right=rightArrow, 
             thickness=arrowThickness, 
             radius=arrowLength // 2, 
             c=tuple(white)
+        )
+        draw.drawTimeLimit( # TODO: add randomness
+            sign=sign,
+            tc=(400, dimensions[1] // 2), 
+            times=("1:00", "AM", "12:30", "PM"),
+            days=("SAT-SUN &", "PUBLIC HOLIDAYS"),
+            height=timeHeight,
+            vgapPc=timeVGapPc,
+            hgapPc=timeHGapPc,
+            dashWidthPc=timeDashWidthPc,
+            dashHeightPc=timeDashHeightPc,
+            c=tuple(white),
         )
 
         # Add dilation to image
@@ -151,23 +206,23 @@ class NoStoppingGenerator:
         
 
         # Add noise to image
-        allChannelNoise = self.noiseGenerator.getNoiseArea(convSize = 75, maxDev = wideNoise)
-        self.noiseGenerator.addNoiseToImage(sign, allChannelNoise, 0)
-        self.noiseGenerator.addNoiseToImage(sign, allChannelNoise, 1)
-        self.noiseGenerator.addNoiseToImage(sign, allChannelNoise, 2)
+        allChannelNoise = self.noiseGenerator.getNoiseArea(convSize = wideSize, maxDev = wideNoise)
+        self.noiseGenerator.addNoiseToImage(sign.image, allChannelNoise, 0)
+        self.noiseGenerator.addNoiseToImage(sign.image, allChannelNoise, 1)
+        self.noiseGenerator.addNoiseToImage(sign.image, allChannelNoise, 2)
 
-        channel0Noise = self.noiseGenerator.getNoiseArea(convSize = 75, maxDev = colourNoise)
-        self.noiseGenerator.addNoiseToImage(sign, channel0Noise, 0)
+        channel0Noise = self.noiseGenerator.getNoiseArea(convSize = wideSize, maxDev = colourNoise)
+        self.noiseGenerator.addNoiseToImage(sign.image, channel0Noise, 0)
 
-        channel1Noise = self.noiseGenerator.getNoiseArea(convSize = 75, maxDev = colourNoise)
-        self.noiseGenerator.addNoiseToImage(sign, channel1Noise, 1)
+        channel1Noise = self.noiseGenerator.getNoiseArea(convSize = wideSize, maxDev = colourNoise)
+        self.noiseGenerator.addNoiseToImage(sign.image, channel1Noise, 1)
 
-        channel2Noise = self.noiseGenerator.getNoiseArea(convSize = 75, maxDev = colourNoise)
-        self.noiseGenerator.addNoiseToImage(sign, channel2Noise, 2)
+        channel2Noise = self.noiseGenerator.getNoiseArea(convSize = wideSize, maxDev = colourNoise)
+        self.noiseGenerator.addNoiseToImage(sign.image, channel2Noise, 2)
 
-        allChannelNoiseNarrow = self.noiseGenerator.getNoiseArea(convSize = 15, maxDev = narrowNoise)
-        self.noiseGenerator.addNoiseToImage(sign, allChannelNoiseNarrow, 0)
-        self.noiseGenerator.addNoiseToImage(sign, allChannelNoiseNarrow, 1)
-        self.noiseGenerator.addNoiseToImage(sign, allChannelNoiseNarrow, 2)
+        allChannelNoiseNarrow = self.noiseGenerator.getNoiseArea(convSize = narrowSize, maxDev = narrowNoise)
+        self.noiseGenerator.addNoiseToImage(sign.image, allChannelNoiseNarrow, 0)
+        self.noiseGenerator.addNoiseToImage(sign.image, allChannelNoiseNarrow, 1)
+        self.noiseGenerator.addNoiseToImage(sign.image, allChannelNoiseNarrow, 2)
 
         return sign
