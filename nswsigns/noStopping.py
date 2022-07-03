@@ -4,6 +4,7 @@ from FontSelector import FontSelector
 from NoiseGenerator import NoiseGenerator
 import random
 from sign import Sign
+from timeLimitRandomiser import getRandomArgs
 
 
 class NoStoppingGenerator:
@@ -181,18 +182,32 @@ class NoStoppingGenerator:
             radius=arrowLength // 2, 
             c=tuple(white)
         )
-        draw.drawTimeLimit( # TODO: add randomness
-            sign=sign,
-            tc=(400, dimensions[1] // 2), 
-            times=("1:00", "AM", "12:30", "PM"),
-            days=("SAT-SUN &", "PUBLIC HOLIDAYS"),
-            height=timeHeight,
-            vgapPc=timeVGapPc,
-            hgapPc=timeHGapPc,
-            dashWidthPc=timeDashWidthPc,
-            dashHeightPc=timeDashHeightPc,
-            c=tuple(white),
+
+        # Do some calculations about how high/low times can be placed
+        top = int(round(titleStart + 2*textSpacing*textSize))
+        bottom = int(round(arrowStart - arrowThickness - textSpacing*textSize))
+        #print("Top:", top)
+        #print("Bottom:", bottom)
+
+        # Get arguments
+        times = getRandomArgs(
+            sign, 
+            (top, dimensions[1] // 2),
+            (bottom, dimensions[1] // 2),
+            timeHeight,
+            timeVGapPc,
+            timeHGapPc,
+            timeDashWidthPc,
+            timeDashHeightPc,
+            tuple(white),
+            pEmpty=0.5,
+            pNext=0.5,
+            pSpecial=999,
+            maxTimes=5
         )
+
+        for time in times:
+            draw.drawTimeLimit(*time)
 
         # Add dilation to image
         """p = 0.2

@@ -203,12 +203,14 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
 
     # Add minutes if present
     if len(startTime) == 2:
-        startMinPos = (topHeight + height*0.1, startMPos[1])
-        drawText(sign, startTime[1], startMinPos, size = int(round(height * minpc)), c=c)
+        if startTime[1] != "00" or random.random() < 0.5:
+            startMinPos = (topHeight + height*0.1, startMPos[1])
+            drawText(sign, startTime[1], startMinPos, size = int(round(height * minpc)), c=c)
 
     if len(endTime) == 2:
-        endMinPos = (topHeight + height*0.1, endMPos[1])
-        drawText(sign, endTime[1], endMinPos, size = int(round(height * minpc)), c=c)
+        if endTime[1] != "00" or random.random() < 0.5:
+            endMinPos = (topHeight + height*0.1, endMPos[1])
+            drawText(sign, endTime[1], endMinPos, size = int(round(height * minpc)), c=c)
 
     # Add day text
     upTo = tc[0] + height + vgap
