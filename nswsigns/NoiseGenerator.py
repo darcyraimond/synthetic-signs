@@ -1,6 +1,7 @@
 import numpy as np
-from scipy.signal import fftconvolve
+from scipy.signal import fftconvolve, convolve2d
 import random
+from scipy.ndimage import uniform_filter
 
 class NoiseGenerator:
 
@@ -9,14 +10,14 @@ class NoiseGenerator:
         self.maxDev = 10
 
     def getNoiseArea(self, dim=[1000, 500], convSize=11, numConv=3, maxDev=None):
-
+        
         if maxDev is None: maxDev = self.maxDev
 
         # Create noise
-        area = np.random.normal(0, 1, (dim[0] * 2, dim[1] * 2))
-        kernel = np.ones((convSize, convSize)) / convSize**2
+        area = np.random.random((dim[0] * 2, dim[1] * 2))
+
         for _ in range(numConv):
-            area = fftconvolve(area, kernel)
+            area = uniform_filter(area, convSize)
 
         # Transform into required range
         area = area - np.min(area)
