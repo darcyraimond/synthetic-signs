@@ -2,6 +2,7 @@ import draw
 import random
 import cv2
 import numpy as np
+import json
 
 
 def getTransformedPoint(pt, mat):
@@ -173,4 +174,82 @@ class Sign:
             for pt in textTuple[0]:
                 coords.append((pt[0] * ratio + randx, pt[1] * ratio + randy))
             self.finalTextBounds.append((coords, textTuple[1]))
+
+    def fullString(self):
+        out = ""
+        for bbox in self.finalTextBounds:
+            if bbox[1] in ["00", "15", "30", "45"]:
+                out += ":" + bbox[1]
+            elif out == "":
+                out += bbox[1]
+            else:
+                out += " " + bbox[1]
+        return out
+
+    def outputJson(self, path):
+
+        out = []
+
+        # Get full sign bounds
+        fullCoordinates = [
+            int(round(self.finalBounds[0][0])),
+            int(round(self.finalBounds[0][1])),
+            int(round(self.finalBounds[1][0])),
+            int(round(self.finalBounds[1][1])),
+            int(round(self.finalBounds[2][0])),
+            int(round(self.finalBounds[2][1])),
+            int(round(self.finalBounds[3][0])),
+            int(round(self.finalBounds[3][1]))
+        ]
+        fullD = {
+            "Coordinates": fullCoordinates,
+            "Text": self.fullString()
+        }
+        out.append(fullD)
+
+        # Get regular bounds
+        for bbox in self.finalTextBounds:
+
+            # Fix coords
+            coordinates = [
+                int(round(bbox[0][0][0])),
+                int(round(bbox[0][0][1])),
+                int(round(bbox[0][1][0])),
+                int(round(bbox[0][1][1])),
+                int(round(bbox[0][2][0])),
+                int(round(bbox[0][2][1])),
+                int(round(bbox[0][3][0])),
+                int(round(bbox[0][3][1]))
+            ]
+            d = {
+                "Coordinates": coordinates,
+                "Text": bbox[1]
+            }
+            out.append(d)
+
+        # Write to file
+        file = open(path, "w+")
+        file.write(json.dumps(out, indent = 4))
+        file.close()
+
+    def outputTxt(self, path):
+
+        out = ""
+        # Only get text bounding boxes
+        for bbox in self.finalTextBounds:
+            out += str(int(round(bbox[0][0][0]))) + ", "
+            out += str(int(round(bbox[0][0][1]))) + ", "
+            out += str(int(round(bbox[0][1][0]))) + ", "
+            out += str(int(round(bbox[0][1][1]))) + ", "
+            out += str(int(round(bbox[0][2][0]))) + ", "
+            out += str(int(round(bbox[0][2][1]))) + ", "
+            out += str(int(round(bbox[0][3][0]))) + ", "
+            out += str(int(round(bbox[0][3][1]))) + ", "
+            out += bbox[1] + "\n"
+
+        # Write to file
+        while out[-1] == "\n": out = out[:-1]
+        file = open(path, "w+")
+        file.write(out)
+        file.close()
 

@@ -192,14 +192,6 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
     # Draw text in correct positions
     drawText(sign, startTime[0], startIntPos, size=height, c=c)
     ib = sign.textBounds[-1]
-    drawText(sign, startM, startMPos, size=int(round(height * mpc)), c=c)
-    drawRectangle(sign.image, c, dashTL, dashBR)
-    drawText(sign, endTime[0], endIntPos, size=height, c=c)
-    drawText(sign, endM, endMPos, size=int(round(height * mpc)), c=c)
-
-    # Add bounding box for dash
-    bbox = [[(ib[0][0][0], dashTL[1] - 3), (ib[0][2][0], dashTL[1] - 3), (ib[0][2][0], dashBR[1] + 2), (ib[0][0][0], dashBR[1] + 2)], "-"]
-    sign.textBounds.append(bbox)
 
     # Add minutes if present
     if len(startTime) == 2:
@@ -207,10 +199,18 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
             startMinPos = (topHeight + height*0.1, startMPos[1])
             drawText(sign, startTime[1], startMinPos, size = int(round(height * minpc)), c=c)
 
+    drawText(sign, startM, startMPos, size=int(round(height * mpc)), c=c)
+    drawRectangle(sign.image, c, dashTL, dashBR)
+    bbox = [[(ib[0][0][0], dashTL[1] - 3), (ib[0][2][0], dashTL[1] - 3), (ib[0][2][0], dashBR[1] + 2), (ib[0][0][0], dashBR[1] + 2)], "-"]
+    sign.textBounds.append(bbox)
+
+    drawText(sign, endTime[0], endIntPos, size=height, c=c)
     if len(endTime) == 2:
         if endTime[1] != "00" or random.random() < 0.5:
             endMinPos = (topHeight + height*0.1, endMPos[1])
             drawText(sign, endTime[1], endMinPos, size = int(round(height * minpc)), c=c)
+    drawText(sign, endM, endMPos, size=int(round(height * mpc)), c=c)
+    
 
     # Add day text
     upTo = tc[0] + height + vgap
@@ -246,11 +246,10 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
             drawText(sign, dayString[0], startDayPos, dayHeight, c)
             ib = sign.textBounds[-1]
             drawRectangle(sign.image, c, dayDashTL, dayDashBR)
-            drawText(sign, dayString[1], endDayPos, dayHeight, c)
-
-            # Give rectangle a bounding box
             bbox = [[(ib[0][0][0], dayDashTL[1] - 2), (ib[0][2][0], dayDashTL[1] - 2), (ib[0][2][0], dayDashBR[1] + 1), (ib[0][0][0], dayDashBR[1] + 1)], "-"]
             sign.textBounds.append(bbox)
+            drawText(sign, dayString[1], endDayPos, dayHeight, c)
+            
 
 
         upTo += dayHeight + vgap
