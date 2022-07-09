@@ -13,22 +13,8 @@ def getTransformedPoint(pt, mat):
 
 
 def pasteImage(background, sign, start=(0,0)):
-    """for i, row in enumerate(sign):
-        for j, cell in enumerate(row):
-            if cell[3] == 0: continue
-            for k in range(3):
-                ratio = cell[3] / 255
-                if ratio == 1:
-                    background[i+start[0]][j+start[1]][k] = cell[k]
-                else:
-                    background[i+start[0]][j+start[1]][k] = int(round(float(cell[k]) * ratio + float(background[i+start[0]][j+start[1]][k]) * float((1 - ratio))))"""
-
+    
     stack = np.stack([sign[:,:,3],sign[:,:,3],sign[:,:,3]], -1) / 255
-    #signInverse = np.stack([sign[:,:,2],sign[:,:,1],sign[:,:,0]], -1)
-    cv2.imwrite("test.png", sign)
-
-    #print("Mean of this sign is", np.mean(signInverse))
-    #print("Mean of this stack is", np.mean(stack))
     background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]] = \
         background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]] * (1 - stack) \
         + sign[:,:,0:3] * stack
@@ -138,7 +124,13 @@ class Sign:
                 coords.append(getTransformedPoint(pt, self.transformMatrix))
             self.transformTextBounds.append((coords, textTuple[1]))
 
-    def addBackground(self, background):
+    def addBackground(self, background, blankP=0.1):
+
+        if random.random() < blankP:
+            self.final = background
+            self.finalBounds = []
+            self.finalTextBounds = []
+            return
 
         sign = self.transformed
         
@@ -190,36 +182,37 @@ class Sign:
 
         out = []
 
-        # Get full sign bounds
-        fullCoordinates = [
-            int(round(self.finalBounds[0][0])),
-            int(round(self.finalBounds[0][1])),
-            int(round(self.finalBounds[1][0])),
-            int(round(self.finalBounds[1][1])),
-            int(round(self.finalBounds[2][0])),
-            int(round(self.finalBounds[2][1])),
-            int(round(self.finalBounds[3][0])),
-            int(round(self.finalBounds[3][1]))
-        ]
-        fullD = {
-            "Coordinates": fullCoordinates,
-            "Text": self.fullString()
-        }
-        out.append(fullD)
+        if self.finalBounds != []:
+            # Get full sign bounds
+            fullCoordinates = [
+                int(round(self.finalBounds[0][1])),
+                int(round(self.finalBounds[0][0])),
+                int(round(self.finalBounds[3][1])),
+                int(round(self.finalBounds[3][0])),
+                int(round(self.finalBounds[2][1])),
+                int(round(self.finalBounds[2][0])),
+                int(round(self.finalBounds[1][1])),
+                int(round(self.finalBounds[1][0]))
+            ]
+            fullD = {
+                "Coordinates": fullCoordinates,
+                "Text": self.fullString()
+            }
+            out.append(fullD)
 
         # Get regular bounds
         for bbox in self.finalTextBounds:
 
             # Fix coords
             coordinates = [
-                int(round(bbox[0][0][0])),
                 int(round(bbox[0][0][1])),
-                int(round(bbox[0][1][0])),
-                int(round(bbox[0][1][1])),
-                int(round(bbox[0][2][0])),
-                int(round(bbox[0][2][1])),
+                int(round(bbox[0][0][0])),
+                int(round(bbox[0][3][1])),
                 int(round(bbox[0][3][0])),
-                int(round(bbox[0][3][1]))
+                int(round(bbox[0][2][1])),
+                int(round(bbox[0][2][0])),
+                int(round(bbox[0][1][1])),
+                int(round(bbox[0][1][0]))
             ]
             d = {
                 "Coordinates": coordinates,
@@ -233,22 +226,24 @@ class Sign:
         file.close()
 
     def outputTxt(self, path):
-
+        
         out = ""
-        # Only get text bounding boxes
+        
+         # Only get text bounding boxes
         for bbox in self.finalTextBounds:
-            out += str(int(round(bbox[0][0][0]))) + ", "
             out += str(int(round(bbox[0][0][1]))) + ", "
-            out += str(int(round(bbox[0][1][0]))) + ", "
-            out += str(int(round(bbox[0][1][1]))) + ", "
-            out += str(int(round(bbox[0][2][0]))) + ", "
-            out += str(int(round(bbox[0][2][1]))) + ", "
-            out += str(int(round(bbox[0][3][0]))) + ", "
+            out += str(int(round(bbox[0][0][0]))) + ", "
             out += str(int(round(bbox[0][3][1]))) + ", "
+            out += str(int(round(bbox[0][3][0]))) + ", "
+            out += str(int(round(bbox[0][2][1]))) + ", "
+            out += str(int(round(bbox[0][2][0]))) + ", "
+            out += str(int(round(bbox[0][1][1]))) + ", "
+            out += str(int(round(bbox[0][1][0]))) + ", "
             out += bbox[1] + "\n"
 
         # Write to file
-        while out[-1] == "\n": out = out[:-1]
+        if out != "":
+            while out[-1] == "\n": out = out[:-1]
         file = open(path, "w+")
         file.write(out)
         file.close()
