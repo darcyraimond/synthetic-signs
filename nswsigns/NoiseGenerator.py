@@ -55,11 +55,3 @@ class NoiseGenerator:
                     for k in range(4):
                         cell[k] = colour[k]
 
-
-
-obj = NoiseGenerator()
-
-import matplotlib.pyplot as plt
-plt.figure(figsize = (4,8), dpi = 250)
-plt.imshow(obj.getNoiseArea(convSize=101))
-plt.savefig("save.png")
