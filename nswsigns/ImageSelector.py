@@ -4,7 +4,10 @@ import random
 
 class ImageSelector:
 
-    def __init__(self, source="nswsigns/DIV2K_train_HR"):
+    def __init__(self, source="hd"):
+
+        if source == "hd": source = "nswsigns/DIV2K_train_HR"
+        if source == "sd": source = "nswsigns/backgrounds"
         
         self.fileNames = []
         self.isLoaded = []
