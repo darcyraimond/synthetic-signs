@@ -14,10 +14,15 @@ def getTransformedPoint(pt, mat):
 
 def pasteImage(background, sign, start=(0,0)):
     
-    stack = np.stack([sign[:,:,3],sign[:,:,3],sign[:,:,3]], -1) / 255
+    """stack = np.stack([sign[:,:,3],sign[:,:,3],sign[:,:,3]], -1) / 255
     background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]] = \
         background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]] * (1 - stack) \
-        + sign[:,:,0:3] * stack
+        + sign[:,:,0:3] * stack"""
+    stack = np.stack([sign[:,:,3],sign[:,:,3],sign[:,:,3]], -1) / 255
+    tmp = np.array(background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]], dtype = float)
+    signTemp = np.array(sign[:,:,0:3], dtype = float)
+    tmp = np.array(tmp * (1 - stack) + signTemp * stack, dtype = np.uint8)
+    background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]] = tmp
 
 
 class Sign:
