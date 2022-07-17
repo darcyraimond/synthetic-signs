@@ -21,59 +21,6 @@ class IntegerParkingGenerator:
         self.hasHorizontal = False
         self.hasVertical = True
 
-        """# Define default parameters
-        self.vDimensions = [1000, 500]
-        self.hDimensions = [500, 1000]
-        self.outerPad = 10
-        self.green = [35, 130, 20, 255]
-        self.white = [210, 210, 210, 255]
-        self.cornerRadius = 40
-        self.titleStart = 80
-        self.textSize = 250
-        self.textSpacing = 1.1
-        self.arrowStart = 860
-        self.arrowThickness = 18
-        self.arrowLength = 320
-        #self.numDilations = 1
-        #self.dilationP = 0.25
-        self.wideNoise = 40
-        self.colourNoise = 5
-        self.narrowNoise = 20
-        self.wideSize = 120
-        self.narrowSize = 35
-        self.timeVGapPc = 0.1
-        self.timeHeight = 110
-        self.timeHGapPc = 0.13
-        self.timeDashWidthPc = 0.2
-        self.timeDashHeightPc = 0.06
-
-        # Define maximum deviations
-        self.outerRedStripDev = 5
-        self.whiteStripDev = 3
-        self.grDev = 20
-        self.ggDev = 50
-        self.gbDev = 20
-        self.wCommonDev = 25
-        self.wEachDev = 15
-        self.radDev = 10
-        self.titleStartDev = 25
-        self.textSizeDev = 50
-        self.textSpacingDev = 0.1
-        self.arrowStartDev = 45
-        self.arrowThicknessDev = 7
-        self.arrowLengthDev = 50
-        self.wideNoiseDev = 29
-        self.colourNoiseDev = 4
-        self.narrowNoiseDev = 19
-        self.wideSizeDev = 80
-        self.narrowSizeDev = 25
-        self.timeVGapPcDev = 0.15
-        self.timeHeightDev = 20
-        self.timeHGapPcDev = 0.08
-        self.timeDashWidthPcDev = 0.05
-        self.timeDashHeightPcDev = 0.015"""
-        
-
         self.fontSelector = FontSelector()
         self.noiseGenerator = NoiseGenerator()
 
