@@ -130,3 +130,8 @@ dmypy.json
 
 # Other
 *.png
+*.txt
+backgrounds
+gt_cavell
+gt_emerald
+image_data
