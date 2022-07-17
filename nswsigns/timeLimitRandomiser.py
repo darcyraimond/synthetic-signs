@@ -3,40 +3,249 @@
 
 import random
 
-"""
-        draw.drawTimeLimit( # TODO: add randomness
-            sign=sign,
-            tc=(400, dimensions[1] // 2), 
-            times=("1:00", "AM", "12:30", "PM"),
-            days=("SAT-SUN &", "PUBLIC HOLIDAYS"),
-            height=timeHeight,
-            vgapPc=timeVGapPc,
-            hgapPc=timeHGapPc,
-            dashWidthPc=timeDashWidthPc,
-            dashHeightPc=timeDashHeightPc,
-            c=tuple(white),
-        )
-"""
-
 # Some arrays of options for use
 minuteSamples = ["00", "15", "30", "45"]
 daySamples = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
-fullDaySamples = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
+#fullDaySamples = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
 
-def dayEnum(day):
-    if day == "MON": return 1
-    if day == "TUE": return 2
-    if day == "WED": return 3
-    if day == "THU": return 4
-    if day == "FRI": return 5
-    if day == "SAT": return 6
-    if day == "SUN": return 7
+"""def dayEnum(day):
+    if day == "MON" or day == "MONDAY": return 1
+    if day == "TUE" or day == "TUESDAY": return 2
+    if day == "WED" or day == "WEDNESDAY": return 3
+    if day == "THU" or day == "THURSDAY": return 4
+    if day == "FRI" or day == "FRIDAY": return 5
+    if day == "SAT" or day == "SATURDAY": return 6
+    if day == "SUN" or day == "SUNDAY": return 7
+    
+    #if day == "SCHOOL DAYS": return 8
+    #if day == "OTHER DAYS": return 9
+    #if day == "PUBLIC HOLIDAYS": return 10
 
     print(f"ERROR: could not find valid day enumeration for {day}. Exiting.")
-    exit(1)
+    exit(1)"""
+
+def dayToStr(day):
+    if day == 1: return "MON"
+    if day == 2: return "TUE"
+    if day == 3: return "WED"
+    if day == 4: return "THU"
+    if day == 5: return "FRI"
+    if day == 6: return "SAT"
+    if day == 7: return "SUN"
+
+    raise Exception(f"No valid day for code {day}")
 
 
-def daysOverlap(days1, days2):
+def daysToStr(d1, d2):
+    if d1 == d2: return (dayToStr(d1),)
+    return (f"{dayToStr(d1)}-{dayToStr(d2)}",)
+    
+
+def timeToStrs(time):
+    hour = int(time)
+    minute = minuteSamples[int(round((time - hour) * 4))]
+    if hour < 12: m = "AM"
+    else: m = "PM"
+    return f"{(hour - 1) % 12 + 1}:{minute}", m
+
+
+def randomTimeRange(minLength):
+
+    # Calculate random times
+    t1 = random.randint(0, 24 * 4) / 4
+    t2 = random.randint(0, 24 * 4) / 4
+    t1, t2 = sorted([t1, t2])
+
+    # Return if far enough apart, otherwise try again
+    if t2 - t1 >= minLength + 0.25: return t1, t2
+    else: return randomTimeRange(minLength)
+
+
+def randomDayRange(pNone):
+
+    # Give no days randomly
+    if random.random() < pNone: return None
+
+    # Calculate and return random days
+    d1 = random.randint(1, 7)
+    d2 = random.randint(1, 7)
+    d1, d2 = sorted([d1, d2])
+    return d1, d2
+
+
+def randomDT(minTime, pNoDays):
+    days = randomDayRange(pNoDays)
+    times = randomTimeRange(minTime)
+    return days, times
+
+
+def timesOverlap(t1, t2):
+    return not (t1[1] <= t2[0] or t2[1] < t1[0])
+ 
+
+def daysOverlap(d1, d2):
+    return not (d1[1] < d2[0] or d2[1] < d1[0])
+
+
+def isOverlap(dt1, dt2):
+    d1, t1 = dt1
+    d2, t2 = dt2
+    if not daysOverlap(d1, d2): return False
+    if not timesOverlap(t1, t2): return False
+    return True
+
+
+# Check for multisign clashes, return indices for the first found issue
+def checkClashes(arr):
+
+    # Flatten array but retain indices
+    flat = []
+    for i, a in enumerate(arr):
+        for j, dt in enumerate(a):
+            flat.append((dt[0], i, j))
+
+    # Check each matchup
+    for i in range(len(flat)):
+        for j in range(len(flat)):
+            if i == j: continue
+            if isOverlap(flat[i][0], flat[j][0]):
+                return flat[i][1], flat[i][2], flat[j][1], flat[j][2]
+
+    return None
+
+# times = ("9:00", "AM", "1:00", "PM")
+# days = ("SAT-SUN", "PUBLIC HOLIDAYS"), (can replace e.g. "MON-FRI" with e.g. "MON")
+def splitDTs(dt):
+    days, times = dt
+    t1, t2 = times
+    times = (*timeToStrs(t1), *timeToStrs(t2))
+    days = daysToStr(*days)
+    return days, times
+
+
+def dayLines(day):
+    return 1 # TODO: update this with special stuff
+
+
+def heightDT(dt, params):
+    timeHeight = params["time height"]
+    timeHeight += params["time height"] * params["vertical time gap percentage"]
+    dayHeight = 0
+    dayHeight += params["time height"] * params["day height percentage"]
+    dayHeight += params["time height"] * params["vertical time gap percentage"]
+    dayHeight *= dayLines(dt[0])
+    return int(round(timeHeight + dayHeight))
+    
+
+def getDTs(paramList):
+
+    num = len(paramList)
+    numTimes = [0] * num
+    out = []
+    for _ in range(num): out.append([])
+    upToHeights = []
+
+    # If more than one sign, add a time to each by default
+    # TODO: might be able to get rid of most of this
+    """complete = False
+    while not complete and num > 1:
+        
+        # Add times, if one isn't already there
+        for i in range(num):
+            numTimes[i] += 1
+            params = paramList[i]
+            params["up_to_dt"] = params["time top"]
+            if len(out[i]) > 0: continue
+            dt = randomDT(paramList[i]["minimum time"], 0)
+            out[i].append((dt, (params["up_to_dt"], params["time centre"])))
+            params["up_to_dt"] += heightDT(dt, params)
+
+
+        # Check for clashes, 
+        # if one exists then remove one of the offendors
+        issue = checkClashes(out)
+        if issue is None: complete = True
+        else:
+            # Remove one
+            if random.random() < 0.5:
+                paramList[issue[1]]["up_to_dt"] -= out[issue[0]][issue[1]][0]
+                out[issue[0]] = []
+                numTimes[issue[0]] -= 1
+            else:
+                paramList[issue[1]]["up_to_dt"] -= out[issue[0]][issue[1]][0]
+                out[issue[1]] = []
+                numTimes[issue[1]] -= 1"""
+    for i in range(num):
+        paramList[i]["up_to_dt"] = paramList[i]["time top"]
+        numTimes[i] += (num > 1)
+
+    # Create time counts
+    for i in range(num):
+        if numTimes[i] == 0 and random.random() > paramList[i]["p no times"]:
+            numTimes[i] += 1
+        else:
+            continue
+
+        while random.random() < paramList[i]["p next"] and numTimes[i] < paramList[i]["max times"]:
+            numTimes[i] += 1
+
+
+    # Assign more times based on counts
+    complete = False
+    while not complete:
+
+        # Assign one time to the first non-full sign
+        added = False
+        for i in range(num):
+            if len(out[i]) < numTimes[i]:
+                added = True
+                params = paramList[i]
+                dt = randomDT(paramList[i]["minimum time"], 0)
+                #print(out[i])
+                out[i].append((dt, (params["up_to_dt"], params["time centre"])))
+                params["up_to_dt"] += heightDT(dt, params)
+
+                # If this makes the time list too long, remove the 
+                # element and reduce the number of times for this sign
+                if params["up_to_dt"] > params["time bottom"]:
+                    rm = out[i].pop()
+                    params["up_to_dt"] -= heightDT(rm[0], params)
+                    numTimes[i] -= 1
+
+        if not added: complete = True
+
+        # Check for any clashes
+        #print(out)
+        issue = checkClashes(out)
+        if issue is not None:
+            complete = False
+            sign1, time1, sign2, time2 = issue
+            rmSign, rmTime = random.choice([(sign1, time1), (sign2, time2)])
+
+            # Remove specific sign
+            out[rmSign].pop(rmTime)
+
+            # Redo up_to_dt for this whole sign
+            params = paramList[rmSign]
+            params["up_to_dt"] = params["time top"]
+            for i, (dt, tc) in enumerate(out[rmSign]):
+                out[rmSign][i] = (dt, (params["up_to_dt"], tc[1]))
+                params["up_to_dt"] += heightDT(dt, params)
+
+
+
+    # TODO: add special days
+
+    return out
+
+
+
+
+
+
+
+
+"""def daysOverlap(days1, days2):
 
     days1Copy = days1[0].split("-")
     days2Copy = days2[0].split("-")
@@ -189,4 +398,26 @@ def getRandomArgs(sign, tc, bc, height, vGapPc, hGapPc, dashWidthPc, dashHeightP
     return out
         
 
+def checkMultiOverlap(times):
+    pass
 
+def getMultiSignTimes(paramList, pNext):
+
+    numSigns = len(paramList)
+    complete = False # use at various stages
+    out = []
+    for _ in range(numSigns): out.append([])
+
+    # If more than one sign, add one time to each
+    while numSigns > 1 and not complete:
+
+        # Add a time to each if there isn't already one
+        for i in range(numSigns):
+
+
+
+    while not complete:
+
+
+        pass
+"""

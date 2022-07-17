@@ -13,11 +13,6 @@ def getTransformedPoint(pt, mat):
 
 
 def pasteImage(background, sign, start=(0,0)):
-    
-    """stack = np.stack([sign[:,:,3],sign[:,:,3],sign[:,:,3]], -1) / 255
-    background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]] = \
-        background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]] * (1 - stack) \
-        + sign[:,:,0:3] * stack"""
     stack = np.stack([sign[:,:,3],sign[:,:,3],sign[:,:,3]], -1) / 255
     tmp = np.array(background[start[0]:start[0]+sign.shape[0], start[1]:start[1]+sign.shape[1]], dtype = float)
     signTemp = np.array(sign[:,:,0:3], dtype = float)
@@ -183,21 +178,20 @@ class Sign:
                 out += " " + bbox[1]
         return out
 
-    def outputJson(self, path):
+    def outputJsonHelper(self, path, signBounds, textBounds):
 
         out = []
-
-        if self.finalBounds != []:
+        if signBounds != []:
             # Get full sign bounds
             fullCoordinates = [
-                int(round(self.finalBounds[0][1])),
-                int(round(self.finalBounds[0][0])),
-                int(round(self.finalBounds[3][1])),
-                int(round(self.finalBounds[3][0])),
-                int(round(self.finalBounds[2][1])),
-                int(round(self.finalBounds[2][0])),
-                int(round(self.finalBounds[1][1])),
-                int(round(self.finalBounds[1][0]))
+                int(round(signBounds[0][1])),
+                int(round(signBounds[0][0])),
+                int(round(signBounds[3][1])),
+                int(round(signBounds[3][0])),
+                int(round(signBounds[2][1])),
+                int(round(signBounds[2][0])),
+                int(round(signBounds[1][1])),
+                int(round(signBounds[1][0]))
             ]
             fullD = {
                 "Coordinates": fullCoordinates,
@@ -206,7 +200,7 @@ class Sign:
             out.append(fullD)
 
         # Get regular bounds
-        for bbox in self.finalTextBounds:
+        for bbox in textBounds:
 
             # Fix coords
             coordinates = [
@@ -230,12 +224,19 @@ class Sign:
         file.write(json.dumps(out, indent = 4))
         file.close()
 
-    def outputTxt(self, path):
+    def outputJson(self, path, version="final"):
+        if version == "final":
+            return self.outputJsonHelper(path, self.finalBounds, self.finalTextBounds)
+
+        print(f"Error: no output version {version}")
+        exit(1)
+
+    def outputTxtHelper(self, path, textBounds):
         
         out = ""
         
          # Only get text bounding boxes
-        for bbox in self.finalTextBounds:
+        for bbox in textBounds:
             out += str(int(round(bbox[0][0][1]))) + ", "
             out += str(int(round(bbox[0][0][0]))) + ", "
             out += str(int(round(bbox[0][3][1]))) + ", "
@@ -252,4 +253,14 @@ class Sign:
         file = open(path, "w+")
         file.write(out)
         file.close()
+
+    def outputTxt(self, path, version="final"):
+
+        if version == "final":
+            return self.outputTxtHelper(path, self.finalTextBounds)
+        elif version == "raw":
+            return self.outputTxtHelper(path, self.textBounds)
+
+        print(f"Error: no output version {version}")
+        exit(1)
 

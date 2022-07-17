@@ -12,7 +12,7 @@ class Generator:
         self.weights.append(weight)
         self.wtCount += weight
 
-    def get(self, arrows=None):
+    def get(self, arrows=None, orientation=None):
 
         # Generate random number
         rnd = random.uniform(0, self.wtCount)
@@ -20,8 +20,14 @@ class Generator:
         for gen, w in zip(self.generators, self.weights):
             count += w
             if rnd <= count:
-                return gen.drawRandom(arrows=arrows)
+                if orientation is None:
+                    return gen.drawRandom(arrows)
+                elif orientation == "horizontal":
+                    if gen.hasHorizontal: return gen.drawRandom(arrows, orientation)
+                    else: return self.get(arrows, orientation)
+                elif orientation == "vertical":
+                    if gen.hasVertical: return gen.drawRandom(arrows, orientation)
+                    else: return self.get(arrows, orientation)
             
         # If get here, failed.
-        print("FATAL ERROR: did not select a random sign to generate, terminating.")
-        exit(1)
+        raise Exception(f"Could not find a random sign to generate for orientation \"{orientation}\"")
