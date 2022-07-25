@@ -213,6 +213,8 @@ def drawTimeLimit(sign, tc, times, days, height, vgapPc, hgapPc, dashWidthPc, da
     
 
     # Add day text
+    if days is None: return
+
     upTo = tc[0] + height + vgap
     dayHeight = int(round(dayPc * height))
     dayGap = int(round(dayPc * hgap * 2))
@@ -304,12 +306,12 @@ def drawArrow(sign, tc, radius=150, thickness=10, left=False, right=False, headL
     if left:
         drawTriangle(img, (tc[0] - int((headWidth - thickness)/2), tc[1] - radius), headLen, headWidth, isLeft=True, c=c)
     else:
-        drawRectangle(img, c, (tc[0],tc[1] - radius), (tc[0] + thickness - 1, tc[1] - radius + headLen))
+        drawRectangle(img, c, (tc[0],tc[1] - radius), (tc[0] + thickness - 1, min(tc[1] - radius + headLen, tc[1] + radius - headLen)))
 
     if right:
         drawTriangle(img, (tc[0] - int((headWidth - thickness)/2), tc[1] + radius - headLen), headLen, headWidth, isLeft=False, c=c)
     else:
-        drawRectangle(img, c, (tc[0],tc[1] + radius - headLen), (tc[0] + thickness - 1, tc[1] + radius))
+        drawRectangle(img, c, (tc[0],max(tc[1] + radius - headLen, tc[1] - radius + headLen)), (tc[0] + thickness - 1, tc[1] + radius))
 
 
 def pointDist(p1, p2):

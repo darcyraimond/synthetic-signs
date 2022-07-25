@@ -22,11 +22,14 @@ def pasteImage(background, sign, start=(0,0)):
 
 class Sign:
     
-    def __init__(self):
+    def __init__(self, generator, params):
         
         self.image = None
         self.transformed = None
         self.final = None
+
+        self.generator = generator
+        self.params = params
 
         # Ground truths
         self.bounds = None
@@ -170,6 +173,17 @@ class Sign:
     def fullString(self):
         out = ""
         for bbox in self.finalTextBounds:
+            if bbox[1] in ["00", "15", "30", "45"]:
+                out += ":" + bbox[1]
+            elif out == "":
+                out += bbox[1]
+            else:
+                out += " " + bbox[1]
+        return out
+
+    def fullStringPre(self):
+        out = ""
+        for bbox in self.textBounds:
             if bbox[1] in ["00", "15", "30", "45"]:
                 out += ":" + bbox[1]
             elif out == "":

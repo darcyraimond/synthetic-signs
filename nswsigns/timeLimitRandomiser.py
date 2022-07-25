@@ -52,8 +52,8 @@ def timeToStrs(time):
 def randomTimeRange(minLength):
 
     # Calculate random times
-    t1 = random.randint(0, 24 * 4) / 4
-    t2 = random.randint(0, 24 * 4) / 4
+    t1 = random.randint(0, 24 * 4 - 1) / 4
+    t2 = random.randint(0, 24 * 4 - 1) / 4
     t1, t2 = sorted([t1, t2])
 
     # Return if far enough apart, otherwise try again
@@ -96,34 +96,45 @@ def isOverlap(dt1, dt2):
 
 
 # Check for multisign clashes, return indices for the first found issue
-def checkClashes(arr):
+def checkClashes(arr, paramList=None):
 
     # Flatten array but retain indices
     flat = []
     for i, a in enumerate(arr):
         for j, dt in enumerate(a):
             flat.append((dt[0], i, j))
-
+        
     # Check each matchup
     for i in range(len(flat)):
         for j in range(len(flat)):
             if i == j: continue
             if isOverlap(flat[i][0], flat[j][0]):
-                return flat[i][1], flat[i][2], flat[j][1], flat[j][2]
+                # Check for parameters
+                if paramList is None:
+                    return flat[i][1], flat[i][2], flat[j][1], flat[j][2]
+                # Have parameters, so only register clash if there is a 
+                # common direction
+                if paramList[flat[i][1]]["left arrow"] and paramList[flat[j][1]]["left arrow"]:
+                    return flat[i][1], flat[i][2], flat[j][1], flat[j][2]
+                if paramList[flat[i][1]]["right arrow"] and paramList[flat[j][1]]["right arrow"]:
+                    return flat[i][1], flat[i][2], flat[j][1], flat[j][2]
 
     return None
 
 # times = ("9:00", "AM", "1:00", "PM")
-# days = ("SAT-SUN", "PUBLIC HOLIDAYS"), (can replace e.g. "MON-FRI" with e.g. "MON")
+# days = ("SAT-SUN", "PUBLIC HOLIDAYS"), (can replace e.g. "MON-FRI" 
+# with e.g. "MON")
 def splitDTs(dt):
     days, times = dt
     t1, t2 = times
     times = (*timeToStrs(t1), *timeToStrs(t2))
-    days = daysToStr(*days)
+    if days is not None:
+        days = daysToStr(*days)
     return days, times
 
 
 def dayLines(day):
+    if day is None: return 0
     return 1 # TODO: update this with special stuff
 
 
@@ -137,62 +148,37 @@ def heightDT(dt, params):
     return int(round(timeHeight + dayHeight))
     
 
-def getDTs(paramList):
-
+def getDirectionalDTs(paramList, hasLeft, hasRight, out=None, maxIter=100000, penalty=0):
+    numLeft = sum(hasLeft)
+    numRight = sum(hasRight)
     num = len(paramList)
     numTimes = [0] * num
-    out = []
-    for _ in range(num): out.append([])
-    upToHeights = []
+    iters = maxIter
 
-    # If more than one sign, add a time to each by default
-    # TODO: might be able to get rid of most of this
-    """complete = False
-    while not complete and num > 1:
-        
-        # Add times, if one isn't already there
+    if out is None:
+        out = []
+        for _ in range(num): out.append([])
         for i in range(num):
-            numTimes[i] += 1
-            params = paramList[i]
-            params["up_to_dt"] = params["time top"]
-            if len(out[i]) > 0: continue
-            dt = randomDT(paramList[i]["minimum time"], 0)
-            out[i].append((dt, (params["up_to_dt"], params["time centre"])))
-            params["up_to_dt"] += heightDT(dt, params)
-
-
-        # Check for clashes, 
-        # if one exists then remove one of the offendors
-        issue = checkClashes(out)
-        if issue is None: complete = True
-        else:
-            # Remove one
-            if random.random() < 0.5:
-                paramList[issue[1]]["up_to_dt"] -= out[issue[0]][issue[1]][0]
-                out[issue[0]] = []
-                numTimes[issue[0]] -= 1
-            else:
-                paramList[issue[1]]["up_to_dt"] -= out[issue[0]][issue[1]][0]
-                out[issue[1]] = []
-                numTimes[issue[1]] -= 1"""
-    for i in range(num):
-        paramList[i]["up_to_dt"] = paramList[i]["time top"]
-        numTimes[i] += (num > 1)
+            paramList[i]["up_to_dt"] = paramList[i]["time top"]
+            if hasLeft[i] and numLeft > 1 or hasRight[i] and numRight > 1:
+                numTimes[i] += 1
 
     # Create time counts
     for i in range(num):
-        if numTimes[i] == 0 and random.random() > paramList[i]["p no times"]:
-            numTimes[i] += 1
-        else:
-            continue
+        if numTimes[i] == 0:
+            if random.random() > paramList[i]["p no times"]:
+                numTimes[i] += 1
+            else:
+                continue
 
-        while random.random() < paramList[i]["p next"] and numTimes[i] < paramList[i]["max times"]:
+        while random.random() + penalty < paramList[i]["p next"] and numTimes[i] < paramList[i]["max times"]:
             numTimes[i] += 1
 
 
     # Assign more times based on counts
     complete = False
-    while not complete:
+    count = 0
+    while True:
 
         # Assign one time to the first non-full sign
         added = False
@@ -215,8 +201,7 @@ def getDTs(paramList):
         if not added: complete = True
 
         # Check for any clashes
-        #print(out)
-        issue = checkClashes(out)
+        issue = checkClashes(out, paramList)
         if issue is not None:
             complete = False
             sign1, time1, sign2, time2 = issue
@@ -232,192 +217,61 @@ def getDTs(paramList):
                 out[rmSign][i] = (dt, (params["up_to_dt"], tc[1]))
                 params["up_to_dt"] += heightDT(dt, params)
 
+        if complete: break
+
+        # Check if can be broken here and if not, just try again
+        count += 1
+        print(f"({penalty:.02f}) " + f"{count}".ljust(7, " "), end = "\r")
+        if count == iters:
+            for arr, l, r in zip(out, hasLeft, hasRight):
+                if l and len(arr) == 0 and numLeft > 1:
+                    return getDirectionalDTs(paramList, hasLeft, hasRight, maxIter=maxIter, penalty=penalty + 0.01)
+                if r and len(arr) == 0 and numRight > 1:
+                    return getDirectionalDTs(paramList, hasLeft, hasRight, maxIter=maxIter, penalty=penalty + 0.01)
+                if checkClashes(out, paramList) is not None:
+                    return getDirectionalDTs(paramList, hasLeft, hasRight, maxIter=maxIter, penalty=penalty + 0.01)
 
 
     # TODO: add special days
 
-    return out
 
+    assert checkClashes(out, paramList) is None
 
-
-
-
-
-
-
-"""def daysOverlap(days1, days2):
-
-    days1Copy = days1[0].split("-")
-    days2Copy = days2[0].split("-")
-
-    taken = [False, False, False, False, False, False, False]
-    for i in range(1, 8):
-        if i < dayEnum(days1Copy[0]): continue
-        if i > dayEnum(days1Copy[-1]): continue
-        taken[i-1] = True
-
-    for i in range(1, 8):
-        if i < dayEnum(days2Copy[0]): continue
-        if i > dayEnum(days2Copy[-1]): continue
-
-        if taken[i-1]: return True
-
-    return False
-
-
-def timeToFloat(time, m):
-    time = time.split(":")
-    val = int(time[0]) % 12 + float(time[1]) / 60 + 12*(m=="PM")
-    return val
-
-
-def timesOverlap(time1a, m1a, time1b, m1b, time2a, m2a, time2b, m2b):
-
-    t1a = timeToFloat(time1a, m1a)
-    t1b = timeToFloat(time1b, m1b)
-    t2a = timeToFloat(time2a, m2a)
-    t2b = timeToFloat(time2b, m2b)
-
-    return 1 - ((t1b <= t2a) * (t1a <= t2b) + (t1b >= t2a) * (t1a >= t2b))
-
-
-def dateAndTimeOverlap(times1, times2, days1, days2):
-
-    if not daysOverlap(days1, days2): return False
-    if not timesOverlap(*times1, *times2): return False # Might need to fix this if it breaks
-    return True
-
-
-def fullRandomTimeAndDay(pSpecial):
-    # Choose two abbreviations and form a range
-    day1 = random.choice(daySamples)
-    day2 = random.choice(daySamples)
-    d = sorted([day1, day2], key = lambda x: dayEnum(x))
-
-    if day1 == day2:
-        d = [day1]
-    else:
-        d = [f"{d[0]}-{d[1]}"]
-    d = tuple(d)
-
-    # Choose times
-    time1, time2 = 0, 0
-    while int(4 * time1) == int(4 * time2) or time1 > time2:
-        time1 = random.uniform(0, 24)
-        time2 = random.uniform(0, 24)
-    hour1 = int(time1)
-    hour2 = int(time2)
-    m1 = "AM" if hour1 < 12 else "PM"
-    m2 = "AM" if hour2 < 12 else "PM"
-    minute1 = minuteSamples[int((time1 - hour1) * 4)]
-    minute2 = minuteSamples[int((time2 - hour2) * 4)]
-    hour1 = str(((hour1 - 1) % 12) + 1)
-    hour2 = str(((hour2 - 1) % 12) + 1)
-
-    return (f"{hour1}:{minute1}", m1, f"{hour2}:{minute2}", m2), d
-
-
-def getRandomTimesAndDays(num, pSpecial):
-
-    out = []
-    for _ in range(num):
-        out.append(fullRandomTimeAndDay(0))
-
-    isOverlap = False
-    keepGoing = True
-    while keepGoing:
-        isOverlap = False
-        keepGoing = False
-        for i in range(num):
-            for j in range(num):
+    # Move any same days next to each other, and remove days if we can
+    for arr in out:
+        for i in range(len(arr)):
+            for j in range(len(arr)):
+                
+                # Don't need to be moved
                 if i == j: continue
-                if dateAndTimeOverlap(out[i][0], out[j][0], out[i][1], out[j][1]):
+                if arr[i][0][0] != arr[j][0][0]: continue
+                if abs(i - j) <= 1: continue
 
-                    # Randomly remove one of these
-                    if random.random() < 0.1: out.pop(i)
-                    else: out.pop(j)
-                    isOverlap = True
-                    break
+                if i < j: # Swap j and i+1
+                    tmpip1 = (arr[j][0], arr[i+1][1])
+                    tmpj = (arr[i+1][0], arr[j][1])
+                    arr[i+1] = tmpip1
+                    arr[j] = tmpj
+                else: # Swap i and j+1
+                    tmpjp1 = (arr[i][0], arr[j+1][1])
+                    tmpi = (arr[j+1][0], arr[i][1])
+                    arr[j+1] = tmpjp1
+                    arr[i] = tmpi
+                #print("Switched", arr[i][0][0], arr[j][0][0])
 
-            if isOverlap: break
+        for i in range(len(arr)):
+            if i == 0: continue
+            if arr[i][0][0] == arr[i-1][0][0]:
+                #print("Removed")
+                arr[i-1] = ((None, arr[i-1][0][1]), arr[i-1][1])
 
-        if isOverlap:
-            out.append(fullRandomTimeAndDay(0))
-            keepGoing = True
-
-    return out
-
-
-
-def getRandomArgs(sign, tc, bc, height, vGapPc, hGapPc, dashWidthPc, dashHeightPc, c, pEmpty, pNext, pSpecial, maxTimes):
-
-    out = []
-
-    # Return nothing if empty
-    if random.random() < pEmpty: return out
-
-    # If not empty, add a time, then probabilistically add more
-    numTimes = 1
-    while random.random() < pNext and numTimes < maxTimes: numTimes += 1
-
-    # Determine appropriate times
-    dt = getRandomTimesAndDays(numTimes, pSpecial)
-
-    upToHeight = tc[0]
-
-    #if numTimes == 1:
-    for (times, days) in dt:
-
-        #print("Up to", upToHeight)
-        timeTC = (upToHeight, tc[1])
-        
-        # Check if this time will fit
-        takenHeight = height * (1 + vGapPc)
-        if len(days) > 0: takenHeight += height * (vGapPc + 0.35)
-
-        #print("Taken", takenHeight)
-        upToHeight += takenHeight
-        #print(f"Taken height: {takenHeight}, Up to: {upToHeight}, max: {bc[0]}")
-        if upToHeight > bc[0]: break
-
-        
-
-        out.append((
-            sign,
-            timeTC,
-            times,
-            days,
-            height,
-            vGapPc,
-            hGapPc,
-            dashWidthPc,
-            dashHeightPc,
-            c
-        ))
+    # Redo tcs for all signs
+    for i in range(len(out)):
+        params = paramList[i]
+        params["up_to_dt"] = params["time top"]
+        for j, (dt, tc) in enumerate(out[i]):
+            out[i][j] = (dt, (params["up_to_dt"], tc[1]))
+            params["up_to_dt"] += heightDT(dt, params)
 
     return out
-        
 
-def checkMultiOverlap(times):
-    pass
-
-def getMultiSignTimes(paramList, pNext):
-
-    numSigns = len(paramList)
-    complete = False # use at various stages
-    out = []
-    for _ in range(numSigns): out.append([])
-
-    # If more than one sign, add one time to each
-    while numSigns > 1 and not complete:
-
-        # Add a time to each if there isn't already one
-        for i in range(numSigns):
-
-
-
-    while not complete:
-
-
-        pass
-"""
